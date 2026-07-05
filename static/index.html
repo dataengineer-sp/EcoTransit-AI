@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoTransit AI Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #0f172a; /* Dark mode background */
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 20px;
+            display: flex; gap: 20px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .dashboard-left { flex: 2; display: flex; flex-direction: column; gap: 20px; }
+        .dashboard-right { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .kpi-grid { display: flex; gap: 15px; }
+        .kpi-card { flex: 1; padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.2); }
+        #chat-box { height: 200px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+        input[type="text"] { width: calc(100% - 70px); padding: 10px; border-radius: 4px; border: none; }
+        button { padding: 10px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- Left Column: Metrics & Charts -->
+    <div class="dashboard-left">
+        <h2>🍃 EcoTransit AI - Metropolis Overview</h2>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <h3>Traffic</h3>
+                <h2 id="kpi-traffic">--%</h2>
+            </div>
+            <div class="kpi-card">
+                <h3>AQI</h3>
+                <h2 id="kpi-aqi">--</h2>
+            </div>
+            <div class="kpi-card">
+                <h3>Transit Pax</h3>
+                <h2 id="kpi-transit">--</h2>
+            </div>
+        </div>
+
+        <div class="glass-panel">
+            <canvas id="metricsChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- Right Column: AI Insights -->
+    <div class="dashboard-right">
+        <div class="glass-panel" style="flex: 1;">
+            <h3>💬 Chat with Live Data</h3>
+            <div id="chat-box"></div>
+            <div>
+                <input type="text" id="chat-input" placeholder="Ask Gemini about traffic...">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Setup Chart.js
+        const ctx = document.getElementById('metricsChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['10am', '11am', '12pm', '1pm', '2pm', 'Now'],
+                datasets: [{
+                    label: 'Traffic Congestion %',
+                    data: [50, 55, 60, 75, 70, 78],
+                    borderColor: '#ef4444',
+                    tension: 0.4
+                }]
+            }
+        });
+
+        // Fetch live IoT data
+        async function fetchLiveData() {
+            const response = await fetch('/api/data');
+            const data = await response.json();
+            document.getElementById('kpi-traffic').innerText = data.traffic_congestion_percent + "%";
+            document.getElementById('kpi-aqi').innerText = data.aqi;
+            document.getElementById('kpi-transit').innerText = data.transit_passengers;
+        }
+
+        // Chat with Gemini
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const chatBox = document.getElementById('chat-box');
+            const message = input.value;
+
+            chatBox.innerHTML += `<p><b>You:</b> ${message}</p>`;
+            input.value = '';
+
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+
+            const data = await response.json();
+            chatBox.innerHTML += `<p><b>EcoTransit AI:</b> ${data.reply}</p>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Load data on startup
+        fetchLiveData();
+    </script>
+</body>
+</html>
